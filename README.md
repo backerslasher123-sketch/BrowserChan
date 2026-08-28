@@ -1,2 +1,2 @@
 # BrowserChan
-a html-based imageboard engine.
+a html and js-based imageboard engine.
