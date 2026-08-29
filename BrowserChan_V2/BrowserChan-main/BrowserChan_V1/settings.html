@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Site Settings & Themes - Browserchan</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <h1 class="title">Settings & Customization</h1>
+
+    <div class="sub-link"><a href="index.html">Return to dashboard</a></div>
+
+    <div class="dashboard-container">
+        <!-- Theme & Appearance Settings -->
+        <fieldset class="section-box">
+            <legend>🎨 Theme & Visual Preferences</legend>
+            <form id="themeForm" onsubmit="saveThemeSettings(event)">
+                <p>
+                    <label><strong>Select Theme:</strong></label><br>
+                    <select id="themeSelect" class="settings-input" style="width: 250px;">
+                        <option value="theme-yotsuba-b">Yotsuba B (Default Light Blue)</option>
+                        <option value="theme-yotsuba">Yotsuba (Classic Warm Yellow)</option>
+                        <option value="theme-tomorrow">Tomorrow (Dark Mode)</option>
+                        <option value="theme-cyberpunk">Cyberpunk (Neon Dark)</option>
+                    </select>
+                </p>
+                <p>
+                    <label><strong>Font Family:</strong></label><br>
+                    <select id="fontSelect" class="settings-input" style="width: 250px;">
+                        <option value='"Trebuchet MS", Arial, sans-serif'>Trebuchet MS (Default)</option>
+                        <option value="Arial, sans-serif">Arial</option>
+                        <option value='"Courier New", monospace'>Courier New (Monospace)</option>
+                        <option value='Georgia, serif'>Georgia (Serif)</option>
+                    </select>
+                </p>
+                <p>
+                    <label><strong>Default Poster Name:</strong></label><br>
+                    <input type="text" id="defaultPosterName" class="settings-input" placeholder="Anonymous" style="width: 250px;">
+                </p>
+                <p>
+                    <button type="submit" class="btn-submit">Save Settings</button>
+                </p>
+            </form>
+        </fieldset>
+
+        <!-- Banner Settings -->
+        <fieldset class="section-box">
+            <legend>🖼️ Manage Multiple Banners</legend>
+            <form onsubmit="saveBanner(event)">
+                <p>Upload image files for random banner rotation on page load:</p>
+                <p>
+                    <input type="file" id="bannerUpload" accept="image/*" required>
+                </p>
+                <p>
+                    <button type="submit" class="btn-submit">Add Banner to Pool</button>
+                    <button type="button" class="btn-submit" onclick="resetBanners()">Clear All Banners</button>
+                </p>
+            </form>
+            <div id="bannerGallery" style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px;"></div>
+        </fieldset>
+    </div>
+
+    <script src="js/engine.js"></script>
+    <script src="js/verify.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const settings = Imageboard.getSettings();
+            document.getElementById('themeSelect').value = settings.theme || 'theme-yotsuba-b';
+            document.getElementById('fontSelect').value = settings.fontFamily || '"Trebuchet MS", Arial, sans-serif';
+            document.getElementById('defaultPosterName').value = settings.defaultPosterName || 'Anonymous';
+            renderGallery();
+        });
+
+        function saveThemeSettings(e) {
+            e.preventDefault();
+            const theme = document.getElementById('themeSelect').value;
+            const fontFamily = document.getElementById('fontSelect').value;
+            const defaultPosterName = document.getElementById('defaultPosterName').value.trim() || 'Anonymous';
+
+            Imageboard.saveSettings({ theme, fontFamily, defaultPosterName });
+            alert('Settings saved successfully!');
+        }
+
+        function renderGallery() {
+            const banners = Imageboard.getBanners();
+            const gallery = document.getElementById('bannerGallery');
+            gallery.innerHTML = '';
+            if (banners.length === 0) {
+                gallery.innerHTML = '<p style="color:#777;">No custom banners uploaded. Using default banner.</p>';
+                return;
+            }
+            banners.forEach((b, index) => {
+                gallery.innerHTML += `<div style="border:1px solid #aaa; padding:3px; background:#fff;"><img src="${b}" style="max-width:120px; max-height:60px; display:block;"><div style="font-size:10px; text-align:center; color:#000;">Banner #${index+1}</div></div>`;
+            });
+        }
+
+        function saveBanner(e) {
+            e.preventDefault();
+            const fileInput = document.getElementById('bannerUpload');
+            if (fileInput.files && fileInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    Imageboard.addBanner(evt.target.result);
+                    alert('New Banner added!');
+                    renderGallery();
+                };
+                reader.readAsDataURL(fileInput.files[0]);
+            }
+        }
+
+        function resetBanners() {
+            Imageboard.clearBanners();
+            alert('All banners cleared!');
+            renderGallery();
+        }
+    </script>
+</body>
+</html>

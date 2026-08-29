@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Board View</title>
+
+    <link rel="stylesheet" href="css/style.css">
+
+    <style>
+        .post-image{
+            max-width:250px;
+            max-height:250px;
+            border:1px solid #b7c5d9;
+            display:block;
+            margin-bottom:8px;
+            cursor:pointer;
+        }
+
+        .post-video{
+            max-width:350px;
+            max-height:350px;
+            border:1px solid #b7c5d9;
+            background:#000;
+            display:block;
+            margin-bottom:8px;
+        }
+    </style>
+
+</head>
+<body>
+
+    <div class="banner-box" id="bannerBox"></div>
+
+    <h1 class="title" id="boardHeading">/b/ - Board</h1>
+
+    <div class="sub-link">
+        <a href="index.html">Return to dashboard</a>
+    </div>
+
+    <!-- POST FORM -->
+
+    <form id="postForm" onsubmit="addThread(event)">
+
+        <table class="post-table">
+
+            <tr>
+                <td class="label">Name</td>
+                <td class="field">
+                    <input
+                        type="text"
+                        id="postName"
+                        placeholder="Anonymous">
+                </td>
+            </tr>
+
+            <tr>
+                <td class="label">Email</td>
+                <td class="field">
+                    <input
+                        type="text"
+                        id="postEmail"
+                        value="noko">
+                </td>
+            </tr>
+
+            <tr>
+                <td class="label">Subject</td>
+                <td class="field">
+                    <input
+                        type="text"
+                        id="postSubject"
+                        style="width:65%;">
+
+                    <button
+                        type="submit"
+                        class="btn-submit">
+                        Post
+                    </button>
+                </td>
+            </tr>
+
+            <tr>
+                <td class="label">Comment</td>
+                <td class="field">
+                    <textarea
+                        id="postComment"
+                        required
+                        style="width:100%;height:80px;"></textarea>
+                </td>
+            </tr>
+
+            <tr>
+                <td class="label">File</td>
+
+                <td class="field">
+
+                    <input
+                        type="file"
+                        id="postFile"
+                        accept=".jpg,.jpeg,.png,.gif,.webp,.webm,.mp4,.mov,.ogv,.ogg,image/*,video/*">
+
+                    <div style="font-size:11px;color:#666;margin-top:4px;">
+                        Supported:
+                        PNG, JPG, JPEG, GIF, WEBP, WEBM, MP4, MOV, OGV.
+                        Audio files are not allowed.
+                    </div>
+
+                </td>
+
+            </tr>
+
+        </table>
+
+    </form>
+
+    <hr style="border:0;border-top:1px solid #b7c5d9;max-width:800px;margin:20px auto;">
+
+    <!-- THREADS -->
+
+    <div
+        class="thread-container"
+        id="threadContainer"></div>
+
+    <!-- FOOTER -->
+
+    <div class="footer">
+
+        <p>
+            <a href="index.html">Browserchan</a>
+            |
+            <a href="index.html">Return to Dashboard</a>
+        </p>
+
+        <p style="font-size:10px;color:#666;margin-top:5px;">
+            browserchan Copyright © 2024–2026 browserchan-backslash
+        </p>
+
+    </div>
+
+    <script src="js/engine.js"></script>
+    <script src="js/verify.js"></script>
+
+    <script>
+
+        let currentUri = "";
+
+        // -------------------------------------
+        // PAGE LOAD
+        // -------------------------------------
+
+        document.addEventListener("DOMContentLoaded", () => {
+
+            Imageboard.initializeFirstUser();
+            Imageboard.applySettings();
+
+            renderBanner();
+
+            const params = new URLSearchParams(window.location.search);
+
+            currentUri = params.get("b");
+
+            const boards = Imageboard.getBoards();
+
+            const board = boards.find(
+                b => b.uri === currentUri
+            );
+
+            if (!board) {
+
+                document.getElementById("boardHeading").innerText =
+                    "Board Not Found";
+
+                document.getElementById("postForm").style.display =
+                    "none";
+
+                return;
+
+            }
+
+            document.getElementById("boardHeading").innerText =
+                `/${board.uri}/ - ${board.title}`;
+
+            renderThreads();
+
+        });
+
+        // -------------------------------------
+        // RENDER THREADS
+        // -------------------------------------
+
+        function renderThreads() {
+
+            const threads = Imageboard.getThreads(currentUri);
+
+            const container =
+                document.getElementById("threadContainer");
+
+            const currentUser =
+                Imageboard.getCurrentUser();
+
+            const canDelete =
+                currentUser.role === "owner" ||
+                currentUser.role === "admin" ||
+                currentUser.role === "janitor";
+
+            container.innerHTML = "";
+
+            if (threads.length === 0) {
+
+                container.innerHTML =
+                    `
+                    <div style="text-align:center;padding:20px;">
+                        No threads exist in this board yet.
+                        Post the first thread above!
+                    </div>
+                    `;
+
+                return;
+
+            }
+
+            threads.forEach(thread => {
+
+                let mediaHTML = "";
+
+                if (thread.media) {
+
+                    // IMAGE
+
+                    if (thread.mediaType === "image") {
+
+                        mediaHTML = `
+                            <img
+                                src="${thread.media}"
+                                class="post-image"
+                                alt="${thread.fileName || "image"}"
+                                loading="lazy">
+                        `;
+
+                    }
+
+                    // VIDEO
+
+                    if (thread.mediaType === "video") {
+
+                        mediaHTML = `
+                            <video
+                                class="post-video"
+                                controls
+                                playsinline
+                                preload="metadata">
+
+                                <source
+                                    src="${thread.media}"
+                                    type="${thread.mimeType}">
+
+                                Your browser does not support this video.
+
+                            </video>
+                        `;
+
+                    }
+
+                }
+
+                const post = document.createElement("div");
+
+                post.className = "post";
+
+                post.innerHTML = `
+
+                    <div class="post-header">
+
+                        <span class="subject"
+                            style="color:#0f0c5d;font-weight:bold;">
+                            ${thread.subject}
+                        </span>
+
+                        <span class="author"
+                            style="color:#117743;font-weight:bold;">
+                            ${thread.name}
+                        </span>
+
+                        <span>${thread.date}</span>
+
+                        <span>No.${thread.id}</span>
+
+                        ${
+                            canDelete
+                                ? `[<a href="#" onclick="deleteT(${thread.id})" style="color:red;">Delete Post</a>]`
+                                : ""
+                        }
+
+                    </div>
+
+                    <div class="post-body">
+
+                        ${mediaHTML}
+
+                        <div class="post-message">
+                            ${thread.comment}
+                        </div>
+
+                    </div>
+
+                `;
+
+                container.appendChild(post);
+
+            });
+
+        }
+
+        // -------------------------------------
+        // ADD THREAD
+        // -------------------------------------
+
+        async function addThread(event) {
+
+            event.preventDefault();
+
+            const name =
+                document.getElementById("postName").value.trim();
+
+            const email =
+                document.getElementById("postEmail").value.trim();
+
+            const subject =
+                document.getElementById("postSubject").value.trim();
+
+            const comment =
+                document.getElementById("postComment").value.trim();
+
+            const file =
+                document.getElementById("postFile").files[0];
+
+            let mediaData = {};
+
+            if (file) {
+
+                try {
+
+                    mediaData =
+                        await Imageboard.processMediaFile(file);
+
+                } catch (error) {
+
+                    alert(error);
+                    return;
+
+                }
+
+            }
+
+            Imageboard.createThread(currentUri, {
+
+                name,
+                email,
+                subject,
+                comment,
+
+                ...mediaData
+
+            });
+
+            resetFormAndRefresh();
+
+        }
+
+        // -------------------------------------
+        // RESET FORM
+        // -------------------------------------
+
+        function resetFormAndRefresh() {
+
+            document.getElementById("postName").value = "";
+
+            document.getElementById("postEmail").value = "noko";
+
+            document.getElementById("postSubject").value = "";
+
+            document.getElementById("postComment").value = "";
+
+            document.getElementById("postFile").value = "";
+
+            renderThreads();
+
+        }
+
+        // -------------------------------------
+        // DELETE THREAD
+        // -------------------------------------
+
+        function deleteT(id) {
+
+            if (confirm("Delete thread?")) {
+
+                Imageboard.deleteThread(currentUri, id);
+
+                renderThreads();
+
+            }
+
+        }
+
+    </script>
+
+</body>
+</html>
